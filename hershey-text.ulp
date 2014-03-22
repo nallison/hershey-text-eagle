@@ -1,0 +1,754 @@
+#usage "<b>Render Text in a Hershey Typeface Using Wires</b>\n"
+       "<p>"
+       "In a board or package, group the text to render then run this ULP. \n"
+       "A menu dialog box lets you set the Hershey typeface file, wire (stroke) "
+       "width, slope and character width adjustment, the output layer or " 
+       "layer offset and whether to save this as a package in a local library."
+       "<p>"
+       "See Help in the ULP for more information."
+       "<p>"
+       "<author>Author: neil@avon-tech-solutions.co.nz</author>"
+
+/* This is free software: you are free to change and redistribute it. 
+ * THIS PROGRAM IS PROVIDED AS IS AND WITHOUT WARRANTY OF ANY KIND, 
+ * EXPRESSED OR IMPLIED */
+
+/* The data in this package is covered by the following licenses:
+ *   - GNU GENERAL PUBLIC LICENSE Version 2
+ *   - Hershey fonts (hershey-fonts/*.jhf) license
+ *
+ * Refer to the file COPYING in the hershey-fonts directory
+ */
+ 
+ 
+
+/*****************************************************************************
+ * Preset adjustable preferences - adjust these to pre-load the menu defaults
+ *****************************************************************************/
+string face_filename = filedir(argv[0]) + "hershey-fonts/eagles.jhf"; /* Typeface file location*/
+real   stroke_width = 0.2; /* units are mm */
+real   slope_degrees = 0.0;
+real   width_factor = 1.0; /* Allow narrowing / expanding of font */
+
+int    is_fixed_output_layer = 0; /*  Put all output on the same layer if 1 */
+int    fixed_output_layer = 21;   /* tPlace is a common default suggestion */
+int    layer_offset = 0;          /* 0 = output layer is same as input layer */
+
+int    is_make_package = 1; /* 0 = in current pac or pcb, 1 = make package in library */
+int    is_edit_script = 0;  /* View and edit script before it is executed */
+int    is_undo_log_off = 1;
+
+char   unknown_character = '?'; /* Printed if glyph is not defined in font */
+
+/******************************************************************************/
+
+/* History
+   V1.00  2014-Mar-21   Neil ALlison  First release
+ */
+
+string HelpText() 
+{ /* Only in a function so text editor folding can hide it ;) */
+  return 
+   "<html>\n" 
+  "<h1>Hershey Text for Eagle</h1>"
+  "<h3>Function</h3>"
+  "<blockquote>"
+    "Renders grouped text in a Hershey typeface using wires."
+    "<br>"
+    "Runs in a board or package."
+  "</blockquote>"
+  "<p>"
+  "<h3>Syntax</h3>"
+  "<p>"
+  "<blockquote><tt>RUN hershey-text [font] [width] [layer] [no_pac]</tt></blockquote>"
+  "<p>"
+  "<blockquote>"
+  "<tt>font   </tt> font filename without path or extension, e.g. <tt>futural</tt><br>"
+  "<tt>width  </tt> wire (stroke) width in mm<br>"
+  "<tt>layer  </tt> the layer the text is rendered in<br>"
+  "<tt>no_pac </tt> any value for this argument means the text is rendered directly in the editor."
+   "</blockquote>"
+   "<blockquote>"
+   "<b>Command Line Options</b><br>"
+  "If any arguments are supplied to the command line then the ULP runs without "
+  "displaying the menu and uses the remaining default settings."
+   "</blockquote>"
+  "<p>"
+  "<h2>Menu Options</h2>"
+  "When run from a <i>board editor</i>, the default options will create a library "
+  "package of the text rendered with a 0.2mm wire on the same layer as the "
+  "text.  It will ADD it to the board using the origin and rotation from the "
+  "text."
+  "<p>"
+  "When run from a <i>package editor</i>, the default options create the rendered "
+  "wires in the current package on the same layer and location as the text, "
+  "but ignoring any rotation that the text has."
+  "<p>"
+  "The default values for the menu are set by variables at the start of the "
+  "ULP code and may be adjusted to suit the values your prefer to be loaded "
+  "into the dialog box when the ULP is run."
+  "<p>"
+  "<h3>Font rendering characteristics</h3>"
+  "<p>"
+  "<ul>"
+    "<li> Choose the font data file to use.  The <tt>/hershey-fonts/</tt> "
+          "directory is normally installed in the ULP folder and this is "
+          "where it will commence browsing for other files."
+    "</li>"
+    "<li> Set the wire width in mm. Values in the range 4% to 15% of the text "
+          "height often give acceptable results."
+    "</li>"
+    "<li> Set the slope of the text in degrees.  A negative slope makes "
+          "the text lean backwards (to the left) while a positive slope of "
+          "15&deg; imitates <i>italicised</i> fonts."
+    "</li>"
+    "<li> The width factor provides for condensed (&lt;1) and expanded (&gt;1) "
+          "type."
+    "</li>"
+  "</ul>"
+  "<h3>Output Layer(s)</h3>"
+  "<p>"
+  "<ul>"
+    "<li> Render all group texted on this layer forces the rendered wires to "
+          "be placed on this layer - the layer(s) of the input text are ignored."
+    "</li>" 
+    "<li> Render text on separate layers using offset reads the layer of each "
+          "text item in the group and places the wires on that layer plus "
+          "the offset provided. Choosing 0 puts it on the same layer while "
+          "using 100 puts the Hershey text in a user layer (Text.layer + 100)."
+    "</li>"
+  "</ul>"
+  "<h3>Options and Information</h3>"
+  "<p>"
+  "<ul>"
+    "<li> Setting \"Make a Package in library\" renders the text in a library "
+          "saved in the same directory as the board.  The package name is the "
+          "first 8 characters of the text followed by sequence, date and time "
+          "information to help reduce \"package already exists\" errors. "
+          "This setting is ignored if the ULP is run from a package editor."
+    "</li>"
+    "<li> View and edit script before running opens a dialog so you can review "
+          "and optionally edit the script before it is executed."
+    "</li>"
+    "<li> Turn UNDO Log off while script is running helps improve the speed at "
+          "which the script is executed."
+    "</li>"
+    "<li>  For information, the number of text items found in the group is "
+          "displayed."
+    "</li>"
+  "</ul>"  
+  "<hr>"
+  "<h2>Why use Hershey Text for Eagle</h2>"
+  "Have you prepared your pcb <i>artwork</i> and wanted to have some text in a "
+  "typeface that stands out or is more <i>artistic</i> than the default vector "
+  "font and yet still WYSIWYG in the CAM outputs?"
+  "<p>"
+  "This ULP renders text in typefaces originally created by Dr A. V. Hershey "
+  "while working at the U. S. National Bureau of Standards.  The format of the "
+  "font data in this distribution was originally created by James Hurt and "
+  "modified by Kamal Mostafa <a href=\"http://www.whence.com/hershey-fonts/\"> "
+  "http://www.whence.com/hershey-fonts/</a>." 
+  "<p>" 
+  "The plain text .jhf font data files may be created or modified to create new "
+  "character <i>glyphs</i>. For example the \"Eagle Simplex\" "
+  "<tt>eagles.jhf</tt> font is based on <tt>futural.jhf</tt> with &deg;, "
+  "&plusmn;, &micro;, Ø and <i>omega</i> (ASCII character codes 176, 177, 181, "
+  " 216, 219 respectively) added."
+  "<p>"
+  "<p>"
+  "<hr>"
+  "<h3>More Information</h3>"
+  "More information, including example board files demonstrating some output, "
+  "is at <a href=\"http://www.avon-tech-solutions.co.nz/hershey.html\"> "
+  "Avon Technical Solutions Ltd</a>."
+  "<p>"
+  "&copy; 2014 Neil Allison, Avon Technical Solutions Limited"
+  "<p>"
+  "<h3>History</h3>"
+  "V1.00,  20-Mar-2014,  Neil Allison,  Created initial version." 
+
+  "</html>";
+}
+
+/* Global variables */
+string version = "1.00";
+string h;
+string cmd;
+string script_filename; /* brd or lib .name + "_Hershey.scr in brd or lib directory */
+string library_filename; /* brd.name + "_Hershey.lbr" in brd directory */
+string lib_package;
+int    layer_output = fixed_output_layer;
+int    defined_brd_layer[];
+int    defined_pac_layer[];
+int    MM_TO_UNITS = 10000;
+int    text_count = 0; /* Used as part of package name to help provide unique names */
+int    MAX_CHARS_IN_PAC_NAME = 8; /* First n chars to use in package name */
+int    MAX_GLYPHS = 224; /* Max number of glyphs a jhf file can contain */
+int    MIN_CHARS_IN_GLYPH = 10; /* Valid glyphs are at least 10 chars long */
+int    FIRST_CHAR = 32;  /* First printable character, offset into glyph data array*/
+string hershey_data_lines[]; /* .jhf Hershey font file data, one glyph per line */
+int    glyph_count = 0;
+int    glyph_scale_factor = 21; /* 21 units from base to top of capital letter */
+int    glyph_y_adjust = 9;  /* TODO Get base and top from letter 'E' and calculate this */ 
+real   shear_factor = 0.0; /* 0 is 0° (vertical), 0.268 is 15°, 1 is 45°, tan(angle°) */
+
+
+void output_header(string source) 
+{
+  sprintf(h, "# Script created: %s\n"
+           + "# Exported from : %s\n"
+           + "# ULP Name      : %s\n"
+           + "# ULP Version   : %s\n"
+           + "# CAD Version   : %s \n\n", 
+                t2string(time(),"yyyy-MM-dd hh:mm:ss"), source, argv[0], 
+                version, EAGLE_SIGNATURE);
+  cmd += h;
+  if (is_undo_log_off) cmd += "SET UNDO_LOG OFF;\n";  
+  cmd += "set wire_bend 2;\n";
+  cmd += "GRID mm;\n";
+}
+
+void output_footer(void) 
+{
+  cmd += "SET UNDO_LOG ON;\n";
+  cmd += "GRID LAST;\n";
+}
+
+string package_text_abbrev(string s) 
+{
+  int len = min(strlen(s), MAX_CHARS_IN_PAC_NAME);
+  string temp;
+  temp = strsub(s, 0, len);
+  for (int pos = 0; pos < len; pos++) {
+    if (!isalnum(temp[pos])) {
+      temp[pos] = '_';
+      }
+    }
+  return temp;
+}
+
+void set_default_layers_as_defined(void)
+{
+  for (int lay = 1; lay <=52; lay++) {
+     defined_brd_layer[lay] = 1;
+     defined_pac_layer[lay] = 1;
+     }
+  defined_brd_layer[50] = 0;
+  defined_pac_layer[50] = 0;
+}
+
+void update_used_layers(UL_LAYER L)
+{
+  /* Add definitions of additional used layers so don't rename these */
+  if (L.used) {
+    if (board)   defined_brd_layer[L.number] = 1;
+    if (package) defined_pac_layer[L.number] = 1;
+    }
+}
+
+void ensure_defined_layer(int lay)
+{
+/* There is currently no (easy) mechanism to check and add layers in a library
+ * when creating a package from a board.  
+ * So user will have to create layers in response to undefined layer error
+ *  dialog boxes. 
+ * A kludge could have the HT font package library have ALL layers 1-255 and
+ * then after adding to the board (and therefore adding all layers to the 
+ * board) run a loop with "LAYERS ?? -n" to delete the empty layers.
+ */
+
+  /* This works for when not making a package from the board (see above)
+   * and rendering Hershey Text in a package.
+   */
+  if ((board && !defined_brd_layer[lay])
+    || (package && !defined_pac_layer[lay])) {
+    sprintf(h, "Layer %d %d_Hershey_Text_Defined;\n", lay, lay);
+    cmd += h;
+    if (board)   defined_brd_layer[lay] = 1;
+    if (package) defined_pac_layer[lay] = 1;
+    }
+}
+
+void debug_print_used_layers(string ed)
+{
+  /* Indicate which of 256 layers are defined via a table in the script file 
+   * 1 is defined, - is not defined */
+  string editor;
+  int lays[];  
+
+  if ("brd" == ed) {
+    editor = "Brd  ";
+    for (int i=0; i<260; i++) {
+      lays[i] = defined_brd_layer[i];
+      }
+    }
+
+  if ("pac" == ed) {
+    editor = "Pac  ";
+    for (int i=0; i<260; i++) {
+      lays[i] = defined_pac_layer[i];
+      }
+    }
+    
+  if ("sch" == ed) {
+    editor = "Pac  ";
+    for (int i=0; i<260; i++) {
+      //lays[i] = defined_sch_layer[i];
+      }
+    } 
+ 
+  
+  sprintf(h, "\n    # Debug - %s    :  0 1 2 3 4   5 6 7 8 9", editor);
+  cmd += h;    
+  
+  for (int i = 0; i<26; i++) {
+    sprintf(h, "\n    # Debug - Layer %3d: ", i*10);
+    cmd += h;      
+    for (int j = 0; j<10; j++) {
+      if (j == 5) cmd += "  ";
+      if (!lays[i*10 +j]) {
+          cmd += " -";
+        }
+      else {
+        sprintf(h, " %d", lays[i*10 +j]);
+        cmd += h;
+        }
+      }
+    }
+  cmd += "\n\n";
+}
+
+int import_hershey_data() 
+{
+/* Reads a modified Hershey Glyph data file into a global array.   
+ * Returns the number of lines read as integer.
+ * No checking is performed, jhf files are assumed correct. This requires:
+ * - .jhf files to be modified so that there are no linebreaks in a glyph.
+ *   See, for example, http://www.whence.com/hershey-fonts/
+ *                     https://github.com/kamalmostafa/hershey-fonts
+ * - First character (=first array element) defined is ASCII 32 (space).
+ * - Maximum of 224 glyphs (MAX_GLYPHS) per data file (usually only 95, up to
+ *   ASCII 127 (~).  Any text beyond line 224 in the .jhf file is ignored.
+ * - Unused glyphs prior to the last "real" glyph must be present e.g. as a
+ *   valid >=10 char "dummy" glyph to make the ANSI ASCII indexing work.
+ * - Lines between the last "real" glyph and line 224 may be blank
+ * - No comment or other text lines prior to line 224.
+ */
+  string raw_data_lines[];
+  int nlines = 0;
+  int nglyphs = 0;
+  int max_data_rows = 0;
+  //nlines = fileread(hershey_data_lines, face_filename);
+  nlines = fileread(raw_data_lines, face_filename);
+  max_data_rows = min(nlines, MAX_GLYPHS);
+  for (int i = 0; i < max_data_rows; i++) {
+    if (strlen(raw_data_lines[i]) >= MIN_CHARS_IN_GLYPH) {
+        hershey_data_lines[i] = raw_data_lines[i];
+        nglyphs++;
+      }
+    }
+  sprintf(h, "# Font file     : %s\n# Raw data lines: %u\n# Glyphs        : %u\n",
+          face_filename, nlines, nglyphs);
+  cmd += h;
+  return nglyphs;
+}
+
+int jhf_grid(char c) 
+{
+  /* When Hershey Font glpyhs are described in the James Hurt font data format
+   * they use a [-49, 49] grid with 'R' as origin (i.e. corresponds to ASCII
+   * characters [33, 131] or '!' through 'ƒ'.
+   * x increases to right, y increases DOWN   
+   * The "Normal" Hershey font height is 21 with (TODO) base at 'F' and top at '['   
+   * Convert the grid cooridnate to integer numbers
+   */
+  return (c - 'R');
+}
+
+int draw_hershey_character(int draw_char, int offset, int vertoffset, int textsize)
+{
+/* Draws a single glyph and returns the updated x-offset value
+ * Inspired by Hershey Text Inkscape extension function
+ * def draw_svg_text(char, face, offset, vertoffset, parent):
+ *
+ * TODO: add line type?
+ * TODO: manage library drawing where Text string origin is at (0 0)
+ *
+ * ref OpenCV http://docs.opencv.org/modules/core/doc/drawing_functions.html#initfont
+ *
+ * Normal Hershey font height is 21 with origin at centre of grid but glyphs 
+ * are not necessarily centred on the origin 
+ * Grid picture at http://home.comcast.net/~urbanjost/CLONE/LIBS/LIBRARY/hershey/
+ */
+
+
+  int num_vertices;
+  int xi = 0;
+  int yi = 0;
+  int left_width = 0;
+  int right_width = 0;
+  int char_line_length = 0;
+  int char_index = draw_char - FIRST_CHAR; /* Data starts at ASCII 32 */
+  string char_path;
+  char_path = hershey_data_lines[char_index];
+  char_line_length = strlen(char_path);
+  sprintf(h, "  # Writing character: %c   Path string: %s\n", draw_char, char_path);
+  cmd += h;
+  num_vertices = strtol(strsub(char_path, 5, 3)) - 1; /* Data incl LR pair */
+  left_width = jhf_grid(char_path[8]);
+  right_width = jhf_grid(char_path[9]);
+
+  /* Begin a wire segment */
+  sprintf(h, "WIRE %5.3f ", stroke_width);
+  cmd += h;
+  /* Parse data pairs starting at character 10 through EOL */
+  for (int i = 10; i < 2*num_vertices+10; i += 2) {
+    if (char_path[i] == ' ' && char_path[i+1] == 'R') { 
+      /* "PEN UP" so finish current wire and start a new one */
+      sprintf(h, ";\nWIRE %5.3f ", stroke_width);
+      cmd += h;
+      }
+    else {
+      yi = (-jhf_grid(char_path[i+1]) + glyph_y_adjust) * textsize + vertoffset;
+      xi = (jhf_grid(char_path[i]) - left_width) * width_factor * textsize
+            + offset + shear_factor * (yi - vertoffset);
+      sprintf(h, "(%5.3f %5.3f) ", u2mm(int(xi)), u2mm(int(yi))); 
+      cmd += h;  
+      }
+    }
+  sprintf(h, ";\n"); /* Finish wire statement */
+  cmd += h;
+  offset += (right_width - left_width) * (width_factor * textsize);
+  return offset;
+}
+
+void render_text_in_group(UL_TEXT Tx) 
+{
+  char   char_to_render;
+  string tx_to_render = Tx.value;
+  int text_x = 0;
+  int text_y = 0;
+  int text_size_adjusted = Tx.size - stroke_width * MM_TO_UNITS;
+  int text_y_adjusted;
+ 
+  /* Update output layer, otherwise use the layer_output set by offset */
+  if (is_fixed_output_layer) {
+    layer_output = fixed_output_layer;
+    }
+  else {
+    layer_output = Tx.layer + layer_offset;
+    }  
+
+  ensure_defined_layer(layer_output);
+  sprintf(h, "Change Layer %d;\n", layer_output /*Tx.layer + layer_offset*/);
+  cmd += h;
+  
+  if (is_make_package) {
+    text_x = 0;
+    text_y_adjusted = stroke_width * MM_TO_UNITS/2;
+    }
+  else {
+    text_x = Tx.x;
+    text_y_adjusted = Tx.y + stroke_width * MM_TO_UNITS/2;
+    }
+    
+  for (int i = 0; tx_to_render[i]; ++i) {
+    /* Only render printable characters  OR those above ASCII 127 which have
+     * glyphs present in the current datafile
+     */
+    if (isprint(tx_to_render[i]) 
+      || ((tx_to_render[i] > 127) && (tx_to_render[i] <= glyph_count + FIRST_CHAR))) {
+      char_to_render = tx_to_render[i];
+      }
+    else {
+      char_to_render = unknown_character;
+      }
+    text_x = draw_hershey_character(int(char_to_render), text_x, text_y_adjusted,
+                                  text_size_adjusted/glyph_scale_factor);
+    }
+}
+
+string make_ht_package(UL_TEXT Tx) 
+{
+  /* Open library and get package ready to write script in.
+   * Put rendered text at origin of package, and put copy of text in
+   * layer 48 Document.
+   * Package name example is in form ABCDEFGH-1-140317-165014.pac 
+   * Use first 8 letters of text string with underscore replacing 
+   * non-alphanumeric characters.
+   */
+  
+  string lib_pac;
+  int time_now = time();
+
+  sprintf(h, "OPEN '%s';\n", library_filename);
+  cmd += h;
+  
+  sprintf(lib_pac, "%s-%u-%s", package_text_abbrev(Tx.value),
+                    text_count, t2string(time_now, "yyMMdd-hhmmss"));
+  sprintf(h, "EDIT %s.PAC;\nGRID MM;\nSET WIRE_BEND 2;\n", lib_pac);
+  cmd += h;
+  /* Use \\n to make the description text have correct line breaks */
+  /* TODO: Parse the text string in case it has chars misinterpreted as html tags
+   *       Consider request permissions for #include awtools.inc 
+   */ 
+  sprintf(h, "DESCRIPTION '<b>Hershey Text:</b> %s  \\n" 
+              + "<p> \\n"
+              + "Typeface: %s \\n"
+              + "<br> \\n"
+              + "Height: %5.3f mm \\n"
+              + "<br> \\n"
+              + "Created at: %s';\n",
+              Tx.value, face_filename, u2mm(Tx.size),
+              t2string(time_now, "yyyy-MM-dd hh:mm:ss"));
+  cmd += h;
+  /* Put a copy of the text in layer 48 Document to facilitate updates */
+  sprintf(h, "CHANGE LAYER 48;\n");
+  cmd += h;
+  sprintf(h, "CHANGE SIZE %5.3f;\n", u2mm(Tx.size));
+  cmd += h;
+  sprintf(h, "TEXT '%s' R0 (0 0);\n", Tx.value);
+  cmd += h;
+  return lib_pac;
+}
+
+void insert_ht_package(string t_pac, string t_lib, int t_x, int t_y, real t_angle) 
+{
+/* Insert this new package at text origin with any rotation 
+ * The name of this inserted Element will be autogenerated as E$..
+ */
+
+  /* Library is still open from rendering the text so save and close it to
+   * return to board 
+   * TODO Assuming always go back to last editing window so don't need
+   * to reopen the board we were working on
+   */
+  sprintf(h, "WRITE;\nCLOSE;\n");
+  cmd += h;
+  sprintf(h, "ADD '%s@%s' R%3.1f (%5.3f %5.3f);\n",
+             t_pac, t_lib, t_angle, u2mm(t_x), u2mm(t_y));
+  cmd += h;
+}
+
+void process_argv(void)
+{
+  if (argc > 1) {
+    face_filename = filedir(argv[0]) + "hershey-fonts/" + argv[1] + ".jhf";
+    }
+  if (argc > 2) {
+    stroke_width = strtod(argv[2]);
+    }
+  if (argc > 3) {
+    is_fixed_output_layer = 1;
+    fixed_output_layer = strtol(argv[3]);
+    }
+  if (argc >4) {
+    is_make_package = 0;
+    }
+}
+
+/*  Menu - English */
+
+int menue(void) 
+{
+  string s;
+  int d = dlgDialog("Render Hershey Text") {
+    dlgHBoxLayout {
+      dlgSpacing(600);
+      }
+    dlgTabWidget { 
+      dlgTabPage("S&ettings"){ /* Tab 1 */
+        dlgGridLayout{
+          dlgCell(0,0,3,4)
+                  dlgGroup("Font rendering characteristics"){
+                    dlgGridLayout {
+                      dlgCell(0, 0) dlgLabel("Hershey font file:");
+                      dlgCell(0, 1, 0, 3) dlgStringEdit(face_filename);
+                      dlgCell(0,4) dlgPushButton("&Browse") {
+                            face_filename = dlgFileOpen("Select the Hershey Font file to use:",
+                                            face_filename, "Hershey Font (*.jhf);; All Files (*.*)");
+                            }
+                      dlgCell(1, 0)  dlgLabel("Wire &width (mm):");
+                      dlgCell(1, 1)  dlgStretch(1);
+                      dlgCell(1, 2)  dlgStretch(1);
+                      dlgCell(1, 3)  dlgStretch(1);
+                      dlgCell(1, 4)  dlgRealEdit(stroke_width);
+                      dlgCell(2, 0)  dlgLabel("&Slope (°)");
+                      dlgCell(2, 4)  dlgRealEdit(slope_degrees);
+                      dlgCell(3, 0)  dlgLabel("Width &Factor");
+                      dlgCell(3, 4)  dlgRealEdit(width_factor);
+                      };
+                    }
+           dlgCell(4,0,5,4)
+                  dlgGroup("Output Layer(s)") {
+                    dlgGridLayout{
+                      dlgCell(5, 0)  dlgRadioButton("Render text on separate layers using offse&t",
+                                     is_fixed_output_layer);
+                      dlgCell(5, 4)  dlgIntEdit(layer_offset);
+                      dlgCell(4, 0)  dlgRadioButton("Render all grouped text on this &Layer", is_fixed_output_layer);
+                      dlgCell(4, 4)  dlgIntEdit(fixed_output_layer);
+                      dlgCell(4, 1)  dlgStretch(2);
+                      dlgCell(4, 2)  dlgStretch(2);
+                      dlgCell(4, 3)  dlgStretch(2);
+                      }
+                    }
+            dlgCell(6,0,7,4) 
+                  dlgGroup("Options and Information") {
+                    if (board) dlgCheckBox("Make a &Package in library (only available in a Board)", is_make_package);
+                    if (package) dlgLabel("<i>&nbsp; &nbsp; &nbsp; Already in a Package, cannot make another</i>", is_make_package);
+                    dlgCheckBox("&View and edit script before running", is_edit_script);
+                    dlgCheckBox("Turn &UNDO Log off while script is running (advisable for speed reasons)", is_undo_log_off);
+                    sprintf(s, "<i>Number of text items in group: %d</i>", text_count); 
+                    dlgLabel(s);
+                    }
+                  }
+        }
+      dlgTabPage("&Help") {    /**Tab 2 */
+        dlgTextView(HelpText());
+        }
+      }
+    dlgHBoxLayout {
+      dlgStretch(3);
+      dlgPushButton("+&OK") dlgAccept();
+      dlgPushButton("-&Cancel") dlgReject();
+      }
+    };
+  return d;
+}
+
+
+void edit_script(void)
+{
+  /* View and edit the script before executing it */
+  int Result = dlgDialog("Edit Script to Generate Hershey Text") {
+    dlgHBoxLayout {
+       dlgTextEdit(cmd);
+       dlgVBoxLayout {
+          dlgSpacing(300);
+          }
+       }
+    dlgHBoxLayout {
+       dlgSpacing(500);
+       }
+    dlgHBoxLayout {
+       dlgPushButton("+&Execute") dlgAccept();
+       dlgPushButton("-&Cancel") dlgReject();
+       dlgStretch(1);
+       }
+    };
+  if (Result == 0) exit(0);
+}
+
+/****************************************************************************
+ * Main 
+ ****************************************************************************/
+
+/* Check some text is grouped in board or package before starting */
+if (board) board(B) {
+  B.texts(T) {
+    if (ingroup(T)) text_count++;
+    }
+  B.elements(E) {
+    E.texts(T) {
+      if (ingroup(T)) text_count++;
+      }
+    }
+  }
+else if (package) package(P) {
+  P.texts(T) {
+    if (ingroup(T)) text_count++;
+    }
+  }
+else {
+  dlgMessageBox("!Start this ULP in a board or library package.", "OK");
+  exit(0);
+  }
+  
+if ( 0 == text_count ) {
+  dlgMessageBox(";No text found in group.\nPlease group the text you wish to render.", "OK");
+  exit(0);
+  }
+else {
+  sprintf(h, "# Texts in group: %u\n", text_count);
+  cmd += h;
+}
+ 
+if (package) {
+  /* In Lib so set menu checkbox and variable to process text as we find it */
+  is_make_package = 0;
+}
+ 
+/* Now Display and act upon menu dialog */ 
+process_argv();
+if (argc <= 1) {
+  if (!menue()) exit (0);
+  }
+ 
+shear_factor = tan(slope_degrees * PI / 180);
+glyph_count = import_hershey_data();
+text_count = 0;
+set_default_layers_as_defined();
+
+if (library) library(LIB) {
+  script_filename = filesetext(LIB.name + "_Hershey", ".scr");
+  output_header(LIB.name);
+  LIB.layers(L) update_used_layers(L);
+  if (package) package(P) {
+    P.texts(T) {
+      if (ingroup(T)) {
+        text_count++;
+        render_text_in_group(T);
+        }
+      }
+    }
+  }      
+else board(B) {
+  script_filename = filesetext(B.name + "_Hershey", ".scr");
+  output_header(B.name);
+  if (is_make_package) {
+    if (!library_filename) {
+      library_filename = filesetext(B.name + "_Hershey", ".lbr");
+      }
+    }
+
+  /* Add definitions of additional used layers so don't rename these */
+  B.layers(L) update_used_layers(L);
+  
+  B.texts(T) {
+    /* Choose to process only texts in board & elements selected in the group */
+    /* TODO: account for T.spin and T.mirror when rendering? */
+    if (ingroup(T)) {
+      text_count++;
+      if (is_make_package) {
+        lib_package = make_ht_package(T);
+        }
+      render_text_in_group(T);
+      if (is_make_package) {
+        insert_ht_package(lib_package, library_filename, T.x , T.y , T.angle);
+        }
+      }
+    }
+  
+  B.elements(E) {  
+    E.texts(T) {
+      /* Choose to process only texts in board & elements selected in the group */
+      /* TODO: account for T.spin and T.mirror when rendering? */
+      if (ingroup(T)) {
+        text_count++;
+        if (is_make_package) {
+          lib_package = make_ht_package(T);
+          }
+        render_text_in_group(T);
+        if (is_make_package) {
+          insert_ht_package(lib_package, library_filename, T.x , T.y , T.angle);
+          }
+        }
+      }    
+    }  
+  }
+
+output_footer();
+if (is_edit_script) edit_script();
+output(script_filename, "wt") printf("%s", cmd);
+/* exit("script '" + script_filename + "';\nREMOVE '" + script_filename + "';\n"); */
+exit("script '" + script_filename + "';\n");
