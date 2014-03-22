@@ -1,0 +1,37 @@
+Hershey text for Cadsoft EAGLE PCB Design Software
+==================================================
+Neil Allison <neil@avon-tech-solutions.co.nz>
+v1.00, 21 March 2014:
+Initial release to Cadsoft downloads area and github
+
+= Overview & Use
+This ULP renders text in typefaces originally created by Dr A. V. Hershey 
+while working at the U. S. National Bureau of Standards.  The format of the
+font data in this distribution was originally created by James Hurt and 
+modified by Kamal Mostafa http://www.whence.com/hershey-fonts/
+
+In an EAGLE board or package editor, group the text to render then run the ULP.
+A dialog then allows you to specify options including:
+- font
+- wire width (stroke width)
+- slope (create simulated _italics_)
+- width factor (create expanded or condensed characters)
+- output layer to draw the wires
+- make a package of the rendered text
+- view and edit the script before executing it
+- turn the UNDO function off or on while the script runs
+
+Website: http:www.avon-tech-solutions.co.nz/hershey.html
+
+= Contents
+- hershey-text.ulp EAGLE User Language Program (ULP) 
+- hershey-fonts/ contains multiple font definition files in the .jhf format. 
+
+= Installation
+Save the hershey-text.ulp file and the hershey-fonts/ directory in your EAGLE ULP directory.
+
+Download more hershey fonts from http://www.whence.com/hershey-fonts/ or 
+https://github.com/kamalmostafa/hershey-fonts/tree/master/hershey-fonts
+
+Create, or customise, fonts to suit your needs.
+
