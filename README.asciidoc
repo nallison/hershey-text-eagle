@@ -12,6 +12,7 @@ modified by Kamal Mostafa http://www.whence.com/hershey-fonts/
 
 In an EAGLE board or package editor, group the text to render then run the ULP.
 A dialog then allows you to specify options including:
+
 - font
 - wire width (stroke width)
 - slope (create simulated _italics_)
