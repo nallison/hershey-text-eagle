@@ -173,7 +173,7 @@ string HelpText()
 }
 
 /* Global variables */
-string version = "1.00";
+string version = "1.0.1";
 string h;
 string cmd;
 string script_filename; /* brd or lib .name + "_Hershey.scr in brd or lib directory */
@@ -560,8 +560,8 @@ void process_argv(void)
 
 int menue(void) 
 {
-  string s;
-  int d = dlgDialog("Render Hershey Text") {
+  string s = "Render Hershey Text  v" + version;
+  int d = dlgDialog(s) {
     dlgHBoxLayout {
       dlgSpacing(600);
       }
