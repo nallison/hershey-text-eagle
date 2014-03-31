@@ -43,6 +43,7 @@ char   unknown_character = '?'; /* Printed if glyph is not defined in font */
 /******************************************************************************/
 
 /* History
+   V1.0.1 2014-Mar-31   Neil Allison  Add version check for correct internal units
    V1.00  2014-Mar-21   Neil ALlison  First release
  */
 
@@ -165,6 +166,7 @@ string HelpText()
   "&copy; 2014 Neil Allison, Avon Technical Solutions Limited"
   "<p>"
   "<h3>History</h3>"
+  "V1.0.1  31-Mar-2014,  Neil Allison,  Add version check for correct internal units"
   "V1.00,  20-Mar-2014,  Neil Allison,  Created initial version." 
 
   "</html>";
@@ -180,7 +182,6 @@ string lib_package;
 int    layer_output = fixed_output_layer;
 int    defined_brd_layer[];
 int    defined_pac_layer[];
-int    MM_TO_UNITS = 10000;
 int    text_count = 0; /* Used as part of package name to help provide unique names */
 int    MAX_CHARS_IN_PAC_NAME = 8; /* First n chars to use in package name */
 int    MAX_GLYPHS = 224; /* Max number of glyphs a jhf file can contain */
@@ -192,6 +193,14 @@ int    glyph_scale_factor = 21; /* 21 units from base to top of capital letter *
 int    glyph_y_adjust = 9;  /* TODO Get base and top from letter 'E' and calculate this */ 
 real   shear_factor = 0.0; /* 0 is 0° (vertical), 0.268 is 15°, 1 is 45°, tan(angle°) */
 
+/* Choose correct internal units: 1/320000 mm for v6, 0.1um for <v6 */
+int    MM_TO_UNITS;
+if (EAGLE_VERSION < 6) {
+  MM_TO_UNITS = 10000;
+  }
+else {
+  MM_TO_UNITS = 320000;
+  }
 
 void output_header(string source) 
 {
