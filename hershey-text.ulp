@@ -44,10 +44,23 @@ char   unknown_character = '?'; /* Printed if glyph is not defined in font */
 
 /******************************************************************************/
 
-/* History
-   V1.0.1 2014-Mar-31   Neil Allison  Add version check for correct internal units
-   V1.00  2014-Mar-21   Neil ALlison  First release
- */
+string version = "1.1.0";
+string HistoryText()
+{
+  return
+    "<html>\n"
+    "<hr>"
+    "<h3>History</h3>"
+    "The latest version is available from <a href=https://github.com/nallison/hershey-text-eagle>"
+    "https://github.com/nallison/hershey-text-eagle</a>"
+    "<p>"
+    "v1.1.0   1-Apr-2014,  Neil Allison,  Add use text ratio to set stroke width & update help"
+    "<p>"
+    "V1.0.1  31-Mar-2014,  Neil Allison,  Add version check for correct internal units"
+    "<p>"
+    "V1.00,  20-Mar-2014,  Neil Allison,  Created initial version." 
+    "</html>";
+}
 
 string HelpText() 
 { /* Only in a function so text editor folding can hide it ;) */
@@ -66,8 +79,9 @@ string HelpText()
   "<blockquote><tt>RUN hershey-text [font] [width] [layer] [no_pac]</tt></blockquote>"
   "<p>"
   "<blockquote>"
-  "<tt>font   </tt> font filename without path or extension, e.g. <tt>futural</tt><br>"
-  "<tt>width  </tt> wire (stroke) width in mm<br>"
+  "<tt>font   </tt> font filename without path or extension, e.g. <tt>futural</tt>.<br>"
+  "<tt>width  </tt> wire (stroke) width in mm.  Put 0  to use text ratio to set wire stroke."
+  " Put 0.0 for a zero wire width.<br>"
   "<tt>layer  </tt> the layer the text is rendered in<br>"
   "<tt>no_pac </tt> any value for this argument means the text is rendered directly in the editor."
    "</blockquote>"
@@ -79,9 +93,9 @@ string HelpText()
   "<p>"
   "<h2>Menu Options</h2>"
   "When run from a <i>board editor</i>, the default options will create a library "
-  "package of the text rendered with a 0.2mm wire on the same layer as the "
-  "text.  It will ADD it to the board using the origin and rotation from the "
-  "text."
+  "package of the text rendered with a wire width calculated from the text height "
+  "and ratio on the same layer as the text.  It will ADD it to the board using "
+  "the origin and rotation from the text."
   "<p>"
   "When run from a <i>package editor</i>, the default options create the rendered "
   "wires in the current package on the same layer and location as the text, "
@@ -136,7 +150,10 @@ string HelpText()
     "<li> Turn UNDO Log off while script is running helps improve the speed at "
           "which the script is executed."
     "</li>"
-    "<li>  For information, the number of text items found in the group is "
+    "<li> Use the each text's ratio to calculate the wire width separately "
+          "for each text instance selected in the group."
+    "</li>"
+    "<li> For information, the number of text items found in the group is "
           "displayed."
     "</li>"
   "</ul>"  
@@ -167,15 +184,10 @@ string HelpText()
   "<p>"
   "&copy; 2014 Neil Allison, Avon Technical Solutions Limited"
   "<p>"
-  "<h3>History</h3>"
-  "V1.0.1  31-Mar-2014,  Neil Allison,  Add version check for correct internal units"
-  "V1.00,  20-Mar-2014,  Neil Allison,  Created initial version." 
-
   "</html>";
 }
 
 /* Global variables */
-string version = "1.1.0-alpha+2";
 string h;
 string cmd;
 string script_filename; /* brd or lib .name + "_Hershey.scr in brd or lib directory */
@@ -565,7 +577,16 @@ void process_argv(void)
     face_filename = filedir(argv[0]) + "hershey-fonts/" + argv[1] + ".jhf";
     }
   if (argc > 2) {
-    stroke_width_user = strtod(argv[2]);
+    /* Add use ratio for stroke width if string is "0", otherwise use this as
+     * the stroke width.  Using 0.0 forces width of 0.0mm
+     */
+    if ("0" == argv[2]) {
+      is_use_ratios = 1;
+      }
+    else {
+      is_use_ratios = 0;
+      stroke_width_user = strtod(argv[2]);
+      }
     }
   if (argc > 3) {
     is_fixed_output_layer = 1;
@@ -634,7 +655,7 @@ int menue(void)
                   }
         }
       dlgTabPage("&Help") {    /**Tab 2 */
-        dlgTextView(HelpText());
+        dlgTextView(HelpText() + HistoryText());
         }
       }
     dlgHBoxLayout {
