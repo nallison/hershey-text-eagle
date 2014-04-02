@@ -190,7 +190,7 @@ int    MIN_CHARS_IN_GLYPH = 10; /* Valid glyphs are at least 10 chars long */
 int    FIRST_CHAR = 32;  /* First printable character, offset into glyph data array*/
 string hershey_data_lines[]; /* .jhf Hershey font file data, one glyph per line */
 int    glyph_count = 0;
-int    glyph_scale_factor = 21; /* 21 units from base to top of capital letter */
+int    GLYPH_SCALE_FACTOR = 21; /* 21 units from base to top of capital letter */
 int    glyph_y_adjust = 9;  /* TODO Get base and top from letter 'E' and calculate this */ 
 real   shear_factor = 0.0; /* 0 is 0° (vertical), 0.268 is 15°, 1 is 45°, tan(angle°) */
 
@@ -485,7 +485,7 @@ void render_text_in_group(UL_TEXT Tx)
       char_to_render = unknown_character;
       }
     text_x = draw_hershey_character(int(char_to_render), text_x, text_y_adjusted,
-                                  text_size_adjusted/glyph_scale_factor,
+                                  text_size_adjusted/GLYPH_SCALE_FACTOR,
                                   stroke_width);
     }
 }
