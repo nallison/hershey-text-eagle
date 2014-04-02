@@ -375,13 +375,13 @@ int jhf_grid(char c)
   return (c - 'R');
 }
 
-int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int textsize, int wirewidth)
+int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int textsize /*UL_TEXT Tx */, int wirewidth)
 {
 /* Draws a single glyph and returns the updated x-offset value
  * Inspired by Hershey Text Inkscape extension function
  * def draw_svg_text(char, face, offset, vertoffset, parent):
  *
- * TODO: add line type?
+ * TODO: add line type? segments are too small for this to be noticed
  * TODO: manage library drawing where Text string origin is at (0 0)
  *
  * ref OpenCV http://docs.opencv.org/modules/core/doc/drawing_functions.html#initfont
@@ -426,6 +426,13 @@ int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int text
       yi = (-jhf_grid(char_path[i+1]) + glyph_y_adjust) * text_size_adjusted + vertoffset;
       xi = (jhf_grid(char_path[i]) - left_width) * width_factor * textsize/GLYPH_SCALE_FACTOR 
             + x_offset + shear_factor * (yi - vertoffset);
+      /* Rotation
+       * xir = xd * cos(Tx.angle) - yd * sin(Tx.angle)
+       * yir = xd * sin(Tx.angle) + yd * cos(Tx.angle)
+       * where xd = (xi - Tx.x), yd = (yi - Tx.y)
+       * need to pass Tx.x Tx.y and Tx.angle to this function
+       * Maybe just pass Tx since already bringing Tx.size and modified Tx.Wire.width?
+       * /
       sprintf(h, "(%5.3f %5.3f) ", u2mm(int(xi)), u2mm(int(yi))); 
       cmd += h;  
       }
@@ -486,7 +493,7 @@ void render_text_in_group(UL_TEXT Tx)
       char_to_render = unknown_character;
       }
     text_x = draw_hershey_character(int(char_to_render), text_x, text_y_adjusted,
-                                  Tx.size, stroke_width);
+                                  Tx.size /*Tx*/, stroke_width);
     }
 }
 
