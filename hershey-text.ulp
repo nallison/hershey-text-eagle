@@ -375,7 +375,7 @@ int jhf_grid(char c)
   return (c - 'R');
 }
 
-int draw_hershey_character(int draw_char, int offset, int vertoffset, int textsize, int wirewidth)
+int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int textsize, int wirewidth)
 {
 /* Draws a single glyph and returns the updated x-offset value
  * Inspired by Hershey Text Inkscape extension function
@@ -425,15 +425,15 @@ int draw_hershey_character(int draw_char, int offset, int vertoffset, int textsi
     else {
       yi = (-jhf_grid(char_path[i+1]) + glyph_y_adjust) * text_size_adjusted + vertoffset;
       xi = (jhf_grid(char_path[i]) - left_width) * width_factor * textsize/GLYPH_SCALE_FACTOR 
-            + offset + shear_factor * (yi - vertoffset);
+            + x_offset + shear_factor * (yi - vertoffset);
       sprintf(h, "(%5.3f %5.3f) ", u2mm(int(xi)), u2mm(int(yi))); 
       cmd += h;  
       }
     }
   sprintf(h, ";\n"); /* Finish wire statement */
   cmd += h;
-  offset += (right_width - left_width) * (width_factor * textsize / GLYPH_SCALE_FACTOR);
-  return offset;
+  x_offset += (right_width - left_width) * (width_factor * textsize / GLYPH_SCALE_FACTOR);
+  return x_offset;
 }
 
 void render_text_in_group(UL_TEXT Tx) 
