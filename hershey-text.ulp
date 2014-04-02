@@ -44,27 +44,6 @@ char   unknown_character = '?'; /* Printed if glyph is not defined in font */
 
 /******************************************************************************/
 
-<<<<<<< HEAD
-string version = "1.1.0";
-string HistoryText()
-{
-  return
-    "<html>\n"
-    "<hr>"
-    "<h3>History</h3>"
-    "The latest version is available from <a href=https://github.com/nallison/hershey-text-eagle>"
-    "https://github.com/nallison/hershey-text-eagle</a>"
-    "<p>"
-    "v1.1.0   1-Apr-2014,  Neil Allison,  Add use text ratio to set stroke width & update help"
-    "<p>"
-    "V1.0.1  31-Mar-2014,  Neil Allison,  Add version check for correct internal units"
-    "<p>"
-    "V1.00,  20-Mar-2014,  Neil Allison,  Created initial version." 
-    "</html>";
-}
-
-=======
->>>>>>> dev/ratio
 string HelpText() 
 { /* Only in a function so text editor folding can hide it ;) */
   return 
@@ -195,10 +174,7 @@ string HelpText()
 }
 
 /* Global variables */
-<<<<<<< HEAD
-=======
 string version = "1.1.0";
->>>>>>> dev/ratio
 string h;
 string cmd;
 string script_filename; /* brd or lib .name + "_Hershey.scr in brd or lib directory */
@@ -593,10 +569,7 @@ void process_argv(void)
      */
     if ("0" == argv[2]) {
       is_use_ratios = 1;
-<<<<<<< HEAD
-=======
       stroke_width_user = 0;
->>>>>>> dev/ratio
       }
     else {
       is_use_ratios = 0;
@@ -671,7 +644,7 @@ int menue(void)
                   }
         }
       dlgTabPage("&Help") {    /**Tab 2 */
-        dlgTextView(HelpText() + HistoryText());
+        dlgTextView(HelpText());
         }
       }
     dlgHBoxLayout {
