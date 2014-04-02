@@ -1,0 +1,39 @@
+= Hershey Text for EAGLE ChangeLog / News / History
+
+:website: https://github.com/nallison/hershey-text-eagle
+
+// This text file is formatted with asciidoc, http://asciidoc.org/
+
+== Version 1.1.0 (2014-04-02)
+.Summary
+Added option to use the ratio of each "source" text element to set the
+stroke width rather than forcing a common width for each text selected
+within the group.
+
+.Additions and changes
+- Update help to suit using ratio (#12)
+- Adds command line processing for ratio (#12)
+- Use text ratio to set stroke width and set as default option (#12)
+- Add version string to menu dialog (#10)
+- Move history/changelog from ULP to NEWS.txt
+- Minor updates to README.asciidoc
+
+.Bug fixes
+- Fixes character spacing reduces as stroke width increses (#13)
+
+== Version 1.0.1 (2014-03-31)
+.Bug fixes
+- Check Eagle version for correct internal units (#7)
+
+== 2014-03-25
+.Font file changes
+- Added copyright symbol &copy; to eagles.jhf (#2)
+
+== Version 1.0.0 (2014-03-22)
+.Summary
+- First commit
+
+.Additions and changes
+- Update README.asciidoc
+- Adding the ULP and the hershey-fonts/ directory containing eagles.jhf, 
+COPYING and hershey.txt
