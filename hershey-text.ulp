@@ -442,7 +442,6 @@ void render_text_in_group(UL_TEXT Tx)
   string tx_to_render = Tx.value;
   int text_x = 0;
   int text_y = 0;
-  //int text_size_adjusted;
   int text_y_adjusted;
   int stroke_width;
 
@@ -453,8 +452,6 @@ void render_text_in_group(UL_TEXT Tx)
   else {
     stroke_width = int(stroke_width_user * MM_TO_UNITS);
     }
-
-  //text_size_adjusted = Tx.size - stroke_width;
 
   /* Update output layer, otherwise use the layer_output set by offset */
   if (is_fixed_output_layer) {
@@ -489,8 +486,7 @@ void render_text_in_group(UL_TEXT Tx)
       char_to_render = unknown_character;
       }
     text_x = draw_hershey_character(int(char_to_render), text_x, text_y_adjusted,
-                                  Tx.size /*text_size_adjusted/GLYPH_SCALE_FACTOR*/,
-                                  stroke_width);
+                                  Tx.size, stroke_width);
     }
 }
 
