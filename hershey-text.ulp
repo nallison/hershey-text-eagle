@@ -399,7 +399,11 @@ int draw_hershey_character(int draw_char, int offset, int vertoffset, int textsi
   int right_width = 0;
   int char_line_length = 0;
   int char_index = draw_char - FIRST_CHAR; /* Data starts at ASCII 32 */
+  int text_size_adjusted;
   string char_path;
+
+  text_size_adjusted = (textsize - wirewidth) / GLYPH_SCALE_FACTOR;
+  
   char_path = hershey_data_lines[char_index];
   char_line_length = strlen(char_path);
   sprintf(h, "  # Writing character: %c   Path string: %s\n", draw_char, char_path);
@@ -419,8 +423,8 @@ int draw_hershey_character(int draw_char, int offset, int vertoffset, int textsi
       cmd += h;
       }
     else {
-      yi = (-jhf_grid(char_path[i+1]) + glyph_y_adjust) * textsize + vertoffset;
-      xi = (jhf_grid(char_path[i]) - left_width) * width_factor * textsize
+      yi = (-jhf_grid(char_path[i+1]) + glyph_y_adjust) * text_size_adjusted + vertoffset;
+      xi = (jhf_grid(char_path[i]) - left_width) * width_factor * textsize/GLYPH_SCALE_FACTOR 
             + offset + shear_factor * (yi - vertoffset);
       sprintf(h, "(%5.3f %5.3f) ", u2mm(int(xi)), u2mm(int(yi))); 
       cmd += h;  
@@ -428,7 +432,7 @@ int draw_hershey_character(int draw_char, int offset, int vertoffset, int textsi
     }
   sprintf(h, ";\n"); /* Finish wire statement */
   cmd += h;
-  offset += (right_width - left_width) * (width_factor * textsize);
+  offset += (right_width - left_width) * (width_factor * textsize / GLYPH_SCALE_FACTOR);
   return offset;
 }
 
@@ -438,7 +442,7 @@ void render_text_in_group(UL_TEXT Tx)
   string tx_to_render = Tx.value;
   int text_x = 0;
   int text_y = 0;
-  int text_size_adjusted;
+  //int text_size_adjusted;
   int text_y_adjusted;
   int stroke_width;
 
@@ -450,7 +454,7 @@ void render_text_in_group(UL_TEXT Tx)
     stroke_width = int(stroke_width_user * MM_TO_UNITS);
     }
 
-  text_size_adjusted = Tx.size - stroke_width;
+  //text_size_adjusted = Tx.size - stroke_width;
 
   /* Update output layer, otherwise use the layer_output set by offset */
   if (is_fixed_output_layer) {
@@ -485,7 +489,7 @@ void render_text_in_group(UL_TEXT Tx)
       char_to_render = unknown_character;
       }
     text_x = draw_hershey_character(int(char_to_render), text_x, text_y_adjusted,
-                                  text_size_adjusted/GLYPH_SCALE_FACTOR,
+                                  Tx.size /*text_size_adjusted/GLYPH_SCALE_FACTOR*/,
                                   stroke_width);
     }
 }

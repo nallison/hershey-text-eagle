@@ -16,7 +16,7 @@ within the group.
 - Use text ratio to set stroke width and set as default option (#12)
 - Add version string to menu dialog (#10)
 - Move history/changelog from ULP to NEWS.txt
-- Minor updates to READEME.asc
+- Minor updates to README.asciidoc
 
 .Bug fixes
 - Fixes character spacing reduces as stroke width increses (#13)
