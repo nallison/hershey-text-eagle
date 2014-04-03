@@ -375,7 +375,7 @@ int jhf_grid(char c)
   return (c - 'R');
 }
 
-int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int textsize /*UL_TEXT Tx */, int wirewidth)
+int draw_hershey_character(int draw_char, int x_offset, int vertoffset, /*int textsize*/ UL_TEXT Txt, int wirewidth)
 {
 /* Draws a single glyph and returns the updated x-offset value
  * Inspired by Hershey Text Inkscape extension function
@@ -395,6 +395,11 @@ int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int text
   int num_vertices;
   int xi = 0;
   int yi = 0;
+  int xi_delta = 0;  /* Distance from local Text insertion origin */
+  int yi_delta = 0;
+  int xi_rot = 0;    /* Rotated co-ordinates */
+  int yi_rot = 0;
+  real angle_radians = 0;
   int left_width = 0;
   int right_width = 0;
   int char_line_length = 0;
@@ -402,7 +407,8 @@ int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int text
   int text_size_adjusted;
   string char_path;
 
-  text_size_adjusted = (textsize - wirewidth) / GLYPH_SCALE_FACTOR;
+  text_size_adjusted = (Txt.size - wirewidth) / GLYPH_SCALE_FACTOR;
+  angle_radians = Txt.angle * PI / 180.0; 
   
   char_path = hershey_data_lines[char_index];
   char_line_length = strlen(char_path);
@@ -424,26 +430,31 @@ int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int text
       }
     else {
       yi = (-jhf_grid(char_path[i+1]) + glyph_y_adjust) * text_size_adjusted + vertoffset;
-      xi = (jhf_grid(char_path[i]) - left_width) * width_factor * textsize/GLYPH_SCALE_FACTOR 
+      xi = (jhf_grid(char_path[i]) - left_width) * width_factor * Txt.size/GLYPH_SCALE_FACTOR 
             + x_offset + shear_factor * (yi - vertoffset);
-      /* Rotation
-       * xir = xd * cos(Tx.angle) - yd * sin(Tx.angle)
-       * yir = xd * sin(Tx.angle) + yd * cos(Tx.angle)
-       * where xd = (xi - Tx.x), yd = (yi - Tx.y)
-       * need to pass Tx.x Tx.y and Tx.angle to this function
-       * Maybe just pass Tx since already bringing Tx.size and modified Tx.Wire.width?
-       * /
+      if (!is_make_package) {
+        /* Rotation only done for direct rendering not when creating a package
+         * since package is rotated when it is inserted */
+
+        /* Rotation needs local text origin as centre of rotation */
+        xi_delta = xi - Txt.x;
+        yi_delta = yi - Txt.y;
+        xi_rot = xi_delta * cos(angle_radians) - yi_delta * sin(angle_radians);
+        yi_rot = xi_delta * sin(angle_radians) + yi_delta * cos(angle_radians);
+        xi = xi_rot + Txt.x;
+        yi = yi_rot + Txt.y;
+        }
       sprintf(h, "(%5.3f %5.3f) ", u2mm(int(xi)), u2mm(int(yi))); 
       cmd += h;  
       }
     }
   sprintf(h, ";\n"); /* Finish wire statement */
   cmd += h;
-  x_offset += (right_width - left_width) * (width_factor * textsize / GLYPH_SCALE_FACTOR);
+  x_offset += (right_width - left_width) * (width_factor * Txt.size / GLYPH_SCALE_FACTOR);
   return x_offset;
 }
 
-void render_text_in_group(UL_TEXT Tx) 
+void render_text_in_group(UL_TEXT Tx)
 {
   char   char_to_render;
   string tx_to_render = Tx.value;
@@ -493,7 +504,7 @@ void render_text_in_group(UL_TEXT Tx)
       char_to_render = unknown_character;
       }
     text_x = draw_hershey_character(int(char_to_render), text_x, text_y_adjusted,
-                                  Tx.size /*Tx*/, stroke_width);
+                                  /*Tx.size*/ Tx, stroke_width);
     }
 }
 
