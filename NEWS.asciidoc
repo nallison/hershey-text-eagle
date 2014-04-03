@@ -4,6 +4,20 @@
 
 // This text file is formatted with asciidoc, http://asciidoc.org/
 
+== Version 1.2.0-alpha.1 (2014-02-04) Not Released
+.Summary
+Rotate the Hershey text (HT) by Text.angle when rendering directly in board
+Honour the text settings of spin and mirror when rendering HT.
+
+.Additions and changes
+- Honour the mirror property when calaculating the HT wires for a board (#14)
+- Honour the spin property when calculating the HT wires in brd and pac (#1)
+- Rename NEWS.txt to NEWS.asciidoc to allow automatic rendering at GitHub
+- Rotate the hershey text to match the source text when drawing in a board
+  (currently this is effected by creating a pacage and applying the angle to
+  the package when it is added)
+
+
 == Version 1.1.0 (2014-04-02)
 .Summary
 Added option to use the ratio of each "source" text element to set the
