@@ -28,7 +28,10 @@ Website: http:www.avon-tech-solutions.co.nz/hershey.html
 - hershey-fonts/ contains multiple font definition files in the .jhf format. 
 
 == Installation
-Save the hershey-text.ulp file and the hershey-fonts/ directory in your EAGLE ULP directory.
+Save the hershey-text.ulp file and the hershey-fonts/ directory in your EAGLE ULP directory.  
+
+Use "Save Link As" or "Save Target As" on this link to download the latest version of the ULP from GitHub:  
+https://raw.githubusercontent.com/nallison/hershey-text-eagle/master/hershey-text.ulp
 
 Download more hershey fonts from http://www.whence.com/hershey-fonts/ or 
 https://github.com/kamalmostafa/hershey-fonts/tree/master/hershey-fonts
