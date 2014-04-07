@@ -7,6 +7,10 @@
        "<p>"
        "See Help in the ULP for more information."
        "<p>"
+       "Edit the ULP file to preset your preferred ULP dialog box options"
+       "<p>"
+       "Get the latest version of ULP and fonts from https://github.com/nallison/hershey-text-eagle"
+       "<p>"
        "<author>Author: neil@avon-tech-solutions.co.nz</author>"
 
 /* This is free software: you are free to change and redistribute it. 
@@ -19,28 +23,32 @@
  *
  * Refer to the file COPYING in the hershey-fonts directory
  */
- 
- 
+
 
 /*****************************************************************************
  * Preset adjustable preferences - adjust these to pre-load the menu defaults
+ * Use 0 = no/false and 1 = yes/true
  *****************************************************************************/
-string face_filename = filedir(argv[0]) + "hershey-fonts/eagles.jhf"; /* Typeface file location*/
-int    is_use_ratios = 1;  /* Use the ratio of each text separately rather than
-                              a common stroke width */
-real   stroke_width_user = 0.2; /* Stroke width if not using ratios */
+string face_filename = filedir(argv[0]) + "hershey-fonts/eagles.jhf";
+       /* Typeface file location: hershey-fonts sub-directory is normally
+        * in the ULP directory containing hershey-text.ulp
+        */
+int    is_use_ratios = 1;         /* Use the ratio of each text separately
+                                   * rather than a common stroke width */
+real   stroke_width_user = 0.2;   /* Stroke width if not using ratios */
 real   slope_degrees = 0.0;
-real   width_factor = 1.0; /* Allow narrowing / expanding of font */
+real   width_factor = 1.0;        /* Factor for narrowing / expanding font */
 
-int    is_fixed_output_layer = 0; /*  Put all output on the same layer if 1 */
+int    is_fixed_output_layer = 0; /* Put all output on the same layer if 1 */
 int    fixed_output_layer = 21;   /* tPlace is a common default suggestion */
 int    layer_offset = 0;          /* 0 = output layer is same as input layer */
 
-int    is_make_package = 1; /* 0 = in current pac or pcb, 1 = make package in library */
-int    is_edit_script = 0;  /* View and edit script before it is executed */
+int    is_make_package = 1;       /* 0 = render in current pac or pcb,
+                                   * 1 = make package in library */
+int    is_edit_script = 0;        /* View/edit script before it is executed */
 int    is_undo_log_off = 1;
 
-char   unknown_character = '?'; /* Printed if glyph is not defined in font */
+char   unknown_character = '?';   /* Printed if glyph is not defined in font */
 
 /******************************************************************************/
 
@@ -61,7 +69,8 @@ string HelpText()
   "<blockquote><tt>RUN hershey-text [font] [width] [layer] [no_pac]</tt></blockquote>"
   "<p>"
   "<blockquote>"
-  "<tt>font   </tt> font filename without path or extension, e.g. <tt>futural</tt>.<br>"
+  "<tt>font   </tt> font filename without path or extension, e.g. <tt>eagles</tt> "
+  " or <tt>rowmanc</tt>.<br>"
   "<tt>width  </tt> wire (stroke) width in mm.  Put 0  to use text ratio to set wire stroke."
   " Put 0.0 for a zero wire width.<br>"
   "<tt>layer  </tt> the layer the text is rendered in<br>"
@@ -74,14 +83,15 @@ string HelpText()
    "</blockquote>"
   "<p>"
   "<h2>Menu Options</h2>"
-  "When run from a <i>board editor</i>, the default options will create a library "
-  "package of the text rendered with a wire width calculated from the text height "
-  "and ratio on the same layer as the text.  It will ADD it to the board using "
-  "the origin and rotation from the text."
+  "When run from a <i>board editor</i>, the default options will add a library "
+  "package with the text rendered using a wire width calculated from the text height "
+  "and ratio on the same layer as the text.  It will have the same "
+  "mirroring, spin and rotation as the text and is ADDed to the board at the text "
+  "origin.  A copy of the text is placed in the package on layer 48 Document."
   "<p>"
   "When run from a <i>package editor</i>, the default options create the rendered "
   "wires in the current package on the same layer and location as the text, "
-  "but ignoring any rotation that the text has."
+  "and preserves spin, mirroring and rotation that the text has."
   "<p>"
   "The default values for the menu are set by variables at the start of the "
   "ULP code and may be adjusted to suit the values your prefer to be loaded "
@@ -94,8 +104,14 @@ string HelpText()
           "directory is normally installed in the ULP folder and this is "
           "where it will commence browsing for other files."
     "</li>"
+    "<li> Use ratio to calculate wire width for each text instance rather than "
+          "using the fixed wire width for everything.  This is intended for "
+          "when there are several different size and ratio text objects grouped "
+          "together."
+    "</li>"
     "<li> Set the wire width in mm. Values in the range 4% to 15% of the text "
-          "height often give acceptable results."
+          "height often give acceptable results.  This setting is ignored if "
+          "the Use ratio check box is set."
     "</li>"
     "<li> Set the slope of the text in degrees.  A negative slope makes "
           "the text lean backwards (to the left) while a positive slope of "
@@ -174,7 +190,7 @@ string HelpText()
 }
 
 /* Global variables */
-string version = "1.1.0";
+string version = "1.2.0-alpha.2";
 string h;
 string cmd;
 string script_filename; /* brd or lib .name + "_Hershey.scr in brd or lib directory */
@@ -193,6 +209,10 @@ int    glyph_count = 0;
 int    GLYPH_SCALE_FACTOR = 21; /* 21 units from base to top of capital letter */
 int    glyph_y_adjust = 9;  /* TODO Get base and top from letter 'E' and calculate this */ 
 real   shear_factor = 0.0; /* 0 is 0° (vertical), 0.268 is 15°, 1 is 45°, tan(angle°) */
+int    is_apply_spin = 0;
+int    is_apply_mirror = 0;
+real   hershey_length = 0;
+
 
 /* Choose correct internal units: 1/320000 mm for v6, 0.1um for <v6 */
 int    MM_TO_UNITS;
@@ -279,55 +299,6 @@ void ensure_defined_layer(int lay)
     }
 }
 
-void debug_print_used_layers(string ed)
-{
-  /* Indicate which of 256 layers are defined via a table in the script file 
-   * 1 is defined, - is not defined */
-  string editor;
-  int lays[];  
-
-  if ("brd" == ed) {
-    editor = "Brd  ";
-    for (int i=0; i<260; i++) {
-      lays[i] = defined_brd_layer[i];
-      }
-    }
-
-  if ("pac" == ed) {
-    editor = "Pac  ";
-    for (int i=0; i<260; i++) {
-      lays[i] = defined_pac_layer[i];
-      }
-    }
-    
-  if ("sch" == ed) {
-    editor = "Pac  ";
-    for (int i=0; i<260; i++) {
-      //lays[i] = defined_sch_layer[i];
-      }
-    } 
- 
-  
-  sprintf(h, "\n    # Debug - %s    :  0 1 2 3 4   5 6 7 8 9", editor);
-  cmd += h;    
-  
-  for (int i = 0; i<26; i++) {
-    sprintf(h, "\n    # Debug - Layer %3d: ", i*10);
-    cmd += h;      
-    for (int j = 0; j<10; j++) {
-      if (j == 5) cmd += "  ";
-      if (!lays[i*10 +j]) {
-          cmd += " -";
-        }
-      else {
-        sprintf(h, " %d", lays[i*10 +j]);
-        cmd += h;
-        }
-      }
-    }
-  cmd += "\n\n";
-}
-
 int import_hershey_data() 
 {
 /* Reads a modified Hershey Glyph data file into a global array.   
@@ -348,7 +319,7 @@ int import_hershey_data()
   int nlines = 0;
   int nglyphs = 0;
   int max_data_rows = 0;
-  //nlines = fileread(hershey_data_lines, face_filename);
+
   nlines = fileread(raw_data_lines, face_filename);
   max_data_rows = min(nlines, MAX_GLYPHS);
   for (int i = 0; i < max_data_rows; i++) {
@@ -375,14 +346,54 @@ int jhf_grid(char c)
   return (c - 'R');
 }
 
-int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int textsize, int wirewidth)
+char check_printable_char(char c)
+{
+  /* Ensure character is a formally printable (i.e. ASCII 32-127) or
+   * is in the extended range and there is a glyph for it in the jhf file
+   * otherwise set it to the predefined "unknown character"
+   */
+  char print_this_char;
+  if (isprint(c) || ((c > 127) && (c <= glyph_count + FIRST_CHAR))) {
+      print_this_char = c;
+      }
+    else {
+      print_this_char = unknown_character;
+      }
+  return print_this_char;
+}
+
+
+real get_hershey_string_length(UL_TEXT Tx)
+{
+  /* Traverse the text string and accumulate the Hershey Font width for each
+   * character. 
+   */
+
+  int char_index;
+  real len = 0;
+  char measure_char;
+  int left_width = 0;
+  int right_width = 0;
+  string char_path;
+  string text_string = Tx.value;
+
+  for (int i=0; text_string[i]; i++) {
+    measure_char = check_printable_char(text_string[i]);
+    char_index = measure_char - FIRST_CHAR; /* JHF data starts at ASCII 32 */
+    char_path = hershey_data_lines[char_index];
+    left_width = jhf_grid(char_path[8]);
+    right_width = jhf_grid(char_path[9]);
+    len += right_width - left_width;
+    }
+
+  return len * width_factor * Tx.size / GLYPH_SCALE_FACTOR;
+}
+
+int draw_hershey_character(int draw_char, int x_offset, int vertoffset, /*int textsize*/ UL_TEXT Txt, int wirewidth)
 {
 /* Draws a single glyph and returns the updated x-offset value
  * Inspired by Hershey Text Inkscape extension function
  * def draw_svg_text(char, face, offset, vertoffset, parent):
- *
- * TODO: add line type?
- * TODO: manage library drawing where Text string origin is at (0 0)
  *
  * ref OpenCV http://docs.opencv.org/modules/core/doc/drawing_functions.html#initfont
  *
@@ -393,28 +404,41 @@ int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int text
 
 
   int num_vertices;
+  int txt_x = Txt.x;
+  int txt_y = Txt.y;
   int xi = 0;
   int yi = 0;
+  int xi_delta = 0;  /* Distance from local Text insertion origin */
+  int yi_delta = 0;
+  int xi_rot = 0;    /* Rotated co-ordinates */
+  int yi_rot = 0;
+  real angle_radians = 0;
   int left_width = 0;
   int right_width = 0;
-  int char_line_length = 0;
   int char_index = draw_char - FIRST_CHAR; /* Data starts at ASCII 32 */
   int text_size_adjusted;
   string char_path;
 
-  text_size_adjusted = (textsize - wirewidth) / GLYPH_SCALE_FACTOR;
+  text_size_adjusted = (Txt.size - wirewidth) / GLYPH_SCALE_FACTOR;
+  angle_radians = Txt.angle * PI / 180.0; 
   
   char_path = hershey_data_lines[char_index];
-  char_line_length = strlen(char_path);
   sprintf(h, "  # Writing character: %c   Path string: %s\n", draw_char, char_path);
   cmd += h;
   num_vertices = strtol(strsub(char_path, 5, 3)) - 1; /* Data incl LR pair */
   left_width = jhf_grid(char_path[8]);
   right_width = jhf_grid(char_path[9]);
 
+  if (is_make_package) {
+    /* Set "local text origin" to be (0 0) i.e. package insertion point */
+    txt_x = 0;
+    txt_y = 0;
+  }
+  
   /* Begin a wire segment */
   sprintf(h, "WIRE %5.3f ", u2mm(wirewidth));
   cmd += h;
+
   /* Parse data pairs starting at character 10 through EOL */
   for (int i = 10; i < 2*num_vertices+10; i += 2) {
     if (char_path[i] == ' ' && char_path[i+1] == 'R') { 
@@ -423,27 +447,51 @@ int draw_hershey_character(int draw_char, int x_offset, int vertoffset, int text
       cmd += h;
       }
     else {
+      /* Get point from glyph and scale to correct size */
       yi = (-jhf_grid(char_path[i+1]) + glyph_y_adjust) * text_size_adjusted + vertoffset;
-      xi = (jhf_grid(char_path[i]) - left_width) * width_factor * textsize/GLYPH_SCALE_FACTOR 
+      xi = (jhf_grid(char_path[i]) - left_width) * width_factor * Txt.size/GLYPH_SCALE_FACTOR 
             + x_offset + shear_factor * (yi - vertoffset);
+
+      /* Spin, if needed, is applied relative to local text origin */
+      if (is_apply_spin) {
+        xi = -(xi - txt_x) + txt_x + hershey_length;
+        yi = -(yi - txt_y) + txt_y + Txt.size;
+        }
+
+      /* Rotation needs local text origin as centre of rotation */
+      xi_delta = xi - txt_x;
+      yi_delta = yi - txt_y;
+      xi_rot = xi_delta * cos(angle_radians) - yi_delta * sin(angle_radians);
+      yi_rot = xi_delta * sin(angle_radians) + yi_delta * cos(angle_radians);
+      xi = xi_rot + txt_x;
+      yi = yi_rot + txt_y;
+
+      /* Mirror, if required, across a Y axis through the local text origin */
+      if (is_apply_mirror) {
+        xi = -(xi - txt_x) + txt_x ;
+        }
+        
       sprintf(h, "(%5.3f %5.3f) ", u2mm(int(xi)), u2mm(int(yi))); 
       cmd += h;  
       }
     }
   sprintf(h, ";\n"); /* Finish wire statement */
   cmd += h;
-  x_offset += (right_width - left_width) * (width_factor * textsize / GLYPH_SCALE_FACTOR);
+  x_offset += (right_width - left_width) * (width_factor * Txt.size / GLYPH_SCALE_FACTOR);
   return x_offset;
 }
 
-void render_text_in_group(UL_TEXT Tx) 
+void render_text_in_group(UL_TEXT Tx)
 {
   char   char_to_render;
   string tx_to_render = Tx.value;
   int text_x = 0;
-  int text_y = 0;
   int text_y_adjusted;
   int stroke_width;
+
+  is_apply_spin = ((Tx.angle > 90.0) && (Tx.angle <= 270.0) && (0 == Tx.spin));
+  is_apply_mirror = (Tx.mirror != 0);
+  hershey_length = get_hershey_string_length(Tx);
 
   /* Adjust stroke width according to ratio or fixed user setting*/
   if (is_use_ratios) {
@@ -486,7 +534,7 @@ void render_text_in_group(UL_TEXT Tx)
       char_to_render = unknown_character;
       }
     text_x = draw_hershey_character(int(char_to_render), text_x, text_y_adjusted,
-                                  Tx.size, stroke_width);
+                                  /*Tx.size*/ Tx, stroke_width);
     }
 }
 
@@ -501,6 +549,7 @@ string make_ht_package(UL_TEXT Tx)
    */
   
   string lib_pac;
+  string spin_mirror_cmd = "";
   int time_now = time();
 
   sprintf(h, "OPEN '%s';\n", library_filename);
@@ -526,7 +575,8 @@ string make_ht_package(UL_TEXT Tx)
               Tx.value, face_filename, u2mm(Tx.size), Tx.ratio,
               t2string(time_now, "yyyy-MM-dd hh:mm:ss"));
   cmd += h;
-  /* Put a copy of the text in layer 48 Document to facilitate updates */
+  /* Put a copy of the text in layer 48 Document to facilitate updates.
+   * V1.2.0 matches the spin, mirror and rotation of source text */
   sprintf(h, "CHANGE LAYER 48;\n");
   cmd += h;
   sprintf(h, "CHANGE SIZE %5.3f;\n", u2mm(Tx.size));
@@ -535,26 +585,41 @@ string make_ht_package(UL_TEXT Tx)
   cmd += h;
   sprintf(h, "CHANGE FONT VECTOR;\n");
   cmd += h;
-  sprintf(h, "TEXT '%s' R0 (0 0);\n", Tx.value);
+
+  if (Tx.spin) {
+    spin_mirror_cmd = "S";
+    }
+  else {
+    spin_mirror_cmd = "";
+    }
+  if (Tx.mirror) {
+    spin_mirror_cmd += "M";
+    }
+  sprintf(h, "TEXT '%s' %sR%3.1f (0 0);\n", Tx.value, spin_mirror_cmd, Tx.angle);
   cmd += h;
   return lib_pac;
 }
 
-void insert_ht_package(string t_pac, string t_lib, int t_x, int t_y, real t_angle) 
+void insert_ht_package(string t_pac, string t_lib, UL_TEXT Tx /*int t_x, int t_y, real t_angle*/) 
 {
-/* Insert this new package at text origin with any rotation 
- * The name of this inserted Element will be autogenerated as E$..
- */
+  /* Insert this new package at text origin with any rotation 
+   * The name of this inserted Element will be autogenerated as E$..
+   */
 
   /* Library is still open from rendering the text so save and close it to
    * return to board 
    * TODO Assuming always go back to last editing window so don't need
    * to reopen the board we were working on
    */
+   
   sprintf(h, "WRITE;\nCLOSE;\n");
   cmd += h;
-  sprintf(h, "ADD '%s@%s' R%3.1f (%5.3f %5.3f);\n",
-             t_pac, t_lib, t_angle, u2mm(t_x), u2mm(t_y));
+
+  /* v1.2.0 change to package having 0 angle and added at same angle as source
+   * text to package containing rotation and inserted with zero rotation
+   */ 
+  sprintf(h, "ADD '%s@%s' R0 (%5.3f %5.3f);\n",
+             t_pac, t_lib, u2mm(Tx.x), u2mm(Tx.y));
   cmd += h;
 }
 
@@ -756,7 +821,6 @@ else board(B) {
   
   B.texts(T) {
     /* Choose to process only texts in board & elements selected in the group */
-    /* TODO: account for T.spin and T.mirror when rendering? */
     if (ingroup(T)) {
       text_count++;
       if (is_make_package) {
@@ -764,7 +828,7 @@ else board(B) {
         }
       render_text_in_group(T);
       if (is_make_package) {
-        insert_ht_package(lib_package, library_filename, T.x , T.y , T.angle);
+        insert_ht_package(lib_package, library_filename, T /*.x , T.y , T.angle*/);
         }
       }
     }
@@ -772,7 +836,6 @@ else board(B) {
   B.elements(E) {  
     E.texts(T) {
       /* Choose to process only texts in board & elements selected in the group */
-      /* TODO: account for T.spin and T.mirror when rendering? */
       if (ingroup(T)) {
         text_count++;
         if (is_make_package) {
@@ -780,7 +843,7 @@ else board(B) {
           }
         render_text_in_group(T);
         if (is_make_package) {
-          insert_ht_package(lib_package, library_filename, T.x , T.y , T.angle);
+          insert_ht_package(lib_package, library_filename, T /*.x , T.y , T.angle*/);
           }
         }
       }    
