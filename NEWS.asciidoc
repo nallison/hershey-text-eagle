@@ -4,10 +4,9 @@
 
 // This text file is formatted with asciidoc, http://asciidoc.org/
 
-== Version 1.2.0 (2014-02-07) Not Released
+== Version 1.2.0 (2014-02-07)
 .Summary
-Rotate the Hershey text (HT) by Text.angle when rendering directly in board
-Honour the text settings of spin and mirror when rendering HT.
+Honour the text settings of spin, mirror and rotation when rendering HT.
 
 .Additions and changes
 - Honour the mirror property when calaculating the HT wires for a board (#14)

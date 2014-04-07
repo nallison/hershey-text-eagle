@@ -190,7 +190,7 @@ string HelpText()
 }
 
 /* Global variables */
-string version = "1.2.0-alpha.2";
+string version = "1.2.0";
 string h;
 string cmd;
 string script_filename; /* brd or lib .name + "_Hershey.scr in brd or lib directory */
