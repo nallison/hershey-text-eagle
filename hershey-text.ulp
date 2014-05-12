@@ -35,7 +35,7 @@ string face_filename = filedir(argv[0]) + "hershey-fonts/eagles.jhf";
         */
 int    is_use_ratios = 1;         /* Use the ratio of each text separately
                                    * rather than a common stroke width */
-real   stroke_width_user = 0.2;   /* Stroke width if not using ratios */
+real   stroke_width_user = 0.2;   /* Stroke width in mm if not using ratios */
 real   slope_degrees = 0.0;
 real   width_factor = 1.0;        /* Factor for narrowing / expanding font */
 
@@ -108,6 +108,9 @@ string HelpText()
           "using the fixed wire width for everything.  This is intended for "
           "when there are several different size and ratio text objects grouped "
           "together."
+    "</li>"
+     "<li> Choose the wire width units of mm or mil. This setting is ignored if "
+          "the Use ratio check box is set."
     "</li>"
     "<li> Set the wire width in mm. Values in the range 4% to 15% of the text "
           "height often give acceptable results.  This setting is ignored if "
@@ -190,7 +193,7 @@ string HelpText()
 }
 
 /* Global variables */
-string version = "1.2.0";
+string version = "1.3.0";
 string h;
 string cmd;
 string script_filename; /* brd or lib .name + "_Hershey.scr in brd or lib directory */
@@ -212,7 +215,9 @@ real   shear_factor = 0.0; /* 0 is 0° (vertical), 0.268 is 15°, 1 is 45°, tan(an
 int    is_apply_spin = 0;
 int    is_apply_mirror = 0;
 real   hershey_length = 0;
-
+enum   {UNIT_MM, UNIT_MIL};
+int    stroke_units = UNIT_MM;
+real   MIL_TO_MM = 0.0254;
 
 /* Choose correct internal units: 1/320000 mm for v6, 0.1um for <v6 */
 int    MM_TO_UNITS;
@@ -436,14 +441,14 @@ int draw_hershey_character(int draw_char, int x_offset, int vertoffset, /*int te
   }
   
   /* Begin a wire segment */
-  sprintf(h, "WIRE %5.3f ", u2mm(wirewidth));
+  sprintf(h, "WIRE %f ", u2mm(wirewidth));
   cmd += h;
 
   /* Parse data pairs starting at character 10 through EOL */
   for (int i = 10; i < 2*num_vertices+10; i += 2) {
     if (char_path[i] == ' ' && char_path[i+1] == 'R') { 
       /* "PEN UP" so finish current wire and start a new one */
-      sprintf(h, ";\nWIRE %5.3f ", u2mm(wirewidth));
+      sprintf(h, ";\nWIRE %f ", u2mm(wirewidth));
       cmd += h;
       }
     else {
@@ -498,6 +503,9 @@ void render_text_in_group(UL_TEXT Tx)
     stroke_width = int(Tx.size * Tx.ratio / 100.0);
     }
   else {
+    if (UNIT_MIL == stroke_units) {
+      stroke_width_user = stroke_width_user * MIL_TO_MM;
+    }
     stroke_width = int(stroke_width_user * MM_TO_UNITS);
     }
 
@@ -671,12 +679,22 @@ int menue(void)
                             face_filename = dlgFileOpen("Select the Hershey Font file to use:",
                                             face_filename, "Hershey Font (*.jhf);; All Files (*.*)");
                             }
-                      dlgCell(1, 0, 1, 4) dlgCheckBox("Use &ratio to calculate wire width for each text instance", is_use_ratios);
+                      if (is_use_ratios) stroke_width_user = 0;
+                      dlgCell(1, 0, 1, 3) dlgCheckBox("Use &ratio to calculate wire width for each text instance", is_use_ratios);
+                      dlgCell(1, 4) {
+                        dlgGroup("Wire Width Units") {
+                          dlgHBoxLayout {
+                            dlgRadioButton("&mm", stroke_units)
+                              {stroke_width_user = stroke_width_user * MIL_TO_MM;  dlgRedisplay(); }
+                            dlgRadioButton("m&il", stroke_units) 
+                              {stroke_width_user = stroke_width_user / MIL_TO_MM; dlgRedisplay(); }
+                            }
+                          }
+                        }
                       dlgCell(2, 0, 2, 3) dlgLabel("Wire &width (mm) <i>Ignored if ''Use ratio to calculate wire width'' is set</i>:");
                       dlgCell(2, 1)  dlgStretch(1);
                       dlgCell(2, 2)  dlgStretch(1);
                       dlgCell(2, 3)  dlgStretch(1);
-                      if (is_use_ratios) stroke_width_user = 0;
                       dlgCell(2, 4)  dlgRealEdit(stroke_width_user);
                       dlgCell(3, 0)  dlgLabel("&Slope (°)");
                       dlgCell(3, 4)  dlgRealEdit(slope_degrees);
