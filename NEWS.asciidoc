@@ -4,13 +4,21 @@
 
 // This text file is formatted with asciidoc, http://asciidoc.org/
 
+=== Version 1.3.2 (2014-05-31)
+*Summary* +
+Add version and date to #usage 
+
+*Additions and changes*
+
+- Add the version and release date to the #usage header so it's visible in the Eagle Control Panel
+
 === Version 1.3.1 (2014-05-16)
 *Summary* +
 Code Tidy
 
 *Additions and changes*
 
-- Correct omission of "or mil" from one of th ehelp bullets
+- Correct omission of "or mil" from one of the help bullets
 - Remove commented out function parameters (legacy of changing to UL_TEXT)
 
 

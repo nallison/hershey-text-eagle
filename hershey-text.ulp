@@ -11,6 +11,8 @@
        "<p>"
        "Get the latest version of ULP and fonts from https://github.com/nallison/hershey-text-eagle"
        "<p>"
+       "Version 1.3.2 (2014-05-31)"
+       "<p>"
        "<author>Author: neil@avon-tech-solutions.co.nz</author>"
 
 /* This is free software: you are free to change and redistribute it. 
@@ -193,7 +195,7 @@ string HelpText()
 }
 
 /* Global variables */
-string version = "1.3.1";
+string version = "1.3.2"; /* 2014-05-31 */
 string h;
 string cmd;
 string script_filename; /* brd or lib .name + "_Hershey.scr in brd or lib directory */
